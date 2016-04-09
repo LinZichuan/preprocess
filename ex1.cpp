@@ -38,6 +38,12 @@ void grayto256(float* gray, int *bmp, float max_, float min_, int size) {
     cout << "finish grayto256" << endl;
 }
 
+void graytoint(float* gray, int* gray_int, int size) {
+    for (int i = 0; i < size; ++i) {
+        gray_int[i] = int(gray[i]);
+    }
+}
+
 /*bool read(float* buf, int size) {
     FILE *fp;
     char file[] = "/home/linzichuan/Study/senior_second/particle/test.bin";
@@ -133,7 +139,7 @@ struct star_ar createnoisestar(int row, int col, int side, star_ar &star_points)
     int size = star_points.length;
     int num = 0;
     assert(size < 400);
-    int noise_point_size = size * 4;
+    int noise_point_size = size;  // to scale, 4 times the size
     star_point *p = new star_point[noise_point_size];
     vector<int> vr;
     vector<int> vc;
@@ -172,10 +178,7 @@ struct star_ar createnoisestar(int row, int col, int side, star_ar &star_points)
 
 void paint(int &row, int &col, int &z, int *bmp, star_ar &star_array, star_ar &noise_array, int &side) {
     cout << "start paiting..." << endl;
-
-
     QGraphicsScene* scene = new QGraphicsScene();
-
 
     int w_row = row*sqrt(z);
     int w_col = col*sqrt(z);
@@ -194,15 +197,30 @@ void paint(int &row, int &col, int &z, int *bmp, star_ar &star_array, star_ar &n
     for (int i = 0; i < star_array.length; ++i) {
         painter.drawRect(star_array.p[i].y-side/2, star_array.p[i].x-side/2, side, side);
     }
-
+/*
     painter.setPen(QPen(Qt::red, 4, Qt::SolidLine));
-    for (int i = 0; i < noise_array.length; ++i) {
-        painter.drawRect(noise_array.p[i].y-side/2, noise_array.p[i].x-side/2, side, side);
+    ifstream fin("scan_indices");
+    int index, num=0;
+    int *indices = new int[1000];
+    while (fin >> index) {
+        cout << index << endl;
+        indices[num++] = index;
     }
+    fin.close();
+    for (int i = 0; i < num; ++i) {
+        int index = indices[i];
+        int x = index / (col/100) * 100;
+        int y = index % (col/100) * 100;
+        painter.drawRect(x, y, side, side);
+    }*/
+    //cout << "num = " << num << endl;
+    /*for (int i = 0; i < noise_array.length; ++i) {
+        painter.drawRect(noise_array.p[i].y-side/2, noise_array.p[i].x-side/2, side, side);
+    }*/
     scene->render(&painter);
     //QGraphicsView view(scene);
     //view.show();
-    bool b = img.save("gammas_1_star_no_overlap.png");
+    bool b = img.save("positive.png");
     cout << "finish paiting..." << endl;
 
 }
@@ -230,6 +248,28 @@ void store(star_ar &star_array, int side, star_ar &noise_array, int *bmp, int fi
     for (int i = 0; i < star_array.length; ++i) {
         int x0 = star_array.p[i].y - side/2;
         int y0 = star_array.p[i].x - side/2;
+        //uncomment this with 4 times star array length
+        /*for (int j = 0; j < side; ++j) {
+            for (int k = 0; k < side; ++k) {
+                int x = x0 + k;
+                int y = y0 + 99-j;
+                star[num++] = bmp[x*col + y];
+            }
+        }
+        for (int j = 0; j < side; ++j) {
+            for (int k = 0; k < side; ++k) {
+                int x = x0 + 99-k;
+                int y = y0 + j;
+                star[num++] = bmp[x*col + y];
+            }
+        }
+        for (int j = 0; j < side; ++j) {
+            for (int k = 0; k < side; ++k) {
+                int x = x0 + 99-j;
+                int y = y0 + 99-k;
+                star[num++] = bmp[x*col + y];
+            }
+        }*/
         for (int j = 0; j < side; ++j) {
             for (int k = 0; k < side; ++k) {
                 int x = x0 + j;
@@ -243,7 +283,8 @@ void store(star_ar &star_array, int side, star_ar &noise_array, int *bmp, int fi
     string sfi;
     ss << fi;
     ss >> sfi;
-    string wfile = "./star_"+sfi+".bin";
+    //string wfile = "./spliceosome_bin/spliceosome_star_"+sfi+".bin";
+    string wfile = "./gammas_gray/star_"+sfi+".bin";
     FILE *fp1;
     if ((fp1 = fopen(wfile.c_str(), "wb")) == NULL) {
         cout << "open write positive file ERROR!" << endl;
@@ -257,8 +298,8 @@ void store(star_ar &star_array, int side, star_ar &noise_array, int *bmp, int fi
     int *noise = new int[noise_array.length*side*side];
     int unum = 0;
     for (int i = 0; i < noise_array.length; ++i) {
-        int x0 = noise_array.p[i].x - side/2;
-        int y0 = noise_array.p[i].y - side/2;
+        int x0 = noise_array.p[i].y - side/2;
+        int y0 = noise_array.p[i].x - side/2;
         for (int j = 0; j < side; ++j) {
             for (int k = 0; k < side; ++k) {
                 int x = x0 + j;
@@ -272,7 +313,7 @@ void store(star_ar &star_array, int side, star_ar &noise_array, int *bmp, int fi
     string sfi1;
     ss2 << fi;
     ss2 >> sfi1;
-    string wfile1 = "./noise_"+sfi1+".bin";
+    string wfile1 = "./gammas_gray/noise_"+sfi1+".bin";
     FILE *fp2;
     if ((fp2 = fopen(wfile1.c_str(), "wb")) == NULL) {
         cout << "open write noise file ERROR!" << endl;
@@ -293,8 +334,8 @@ int main (int argc, char *argv[]) {
     //string starfile = base + "gammas-lowpass/stack_0001_cor_manual_lgc.star";
     string manual_files = "/home/linzichuan/Study/senior_second/particle/manual_files.txt";
     string images_files = "/home/linzichuan/Study/senior_second/particle/images_with_star.txt";
-    string* origfiles = new string[400];
-    string* starfiles = new string[400];
+    string* origfiles = new string[500];
+    string* starfiles = new string[500];
     int files_num = 0;
     string ns, ns1;
     ifstream fin1(manual_files);
@@ -308,7 +349,7 @@ int main (int argc, char *argv[]) {
     fin1.close();
     fin2.close();
 
-    int end = files_num;
+    int end = 1;
     //int fi = 0;
     for (int fi = 0; fi < end; ++fi) {
         cout << "starting " << fi << endl;
@@ -344,7 +385,8 @@ int main (int argc, char *argv[]) {
 
         int *bmp = new int[size];
         grayto256(gray, bmp, max_, min_, size);
-
+        int *gray_int = new int[size];
+        graytoint(gray, gray_int, size);
 
         int side = 100;
         cout << "row = " << row << ", col = " << col << endl;
@@ -354,17 +396,20 @@ int main (int argc, char *argv[]) {
         cout << "noise number = " << noise_array.length << endl;
 
         cout << "next loop..." << endl;
+
         //QApplication app(argc, argv);
         //paint(row, col, z, bmp, star_array, noise_array, side);
-        store(star_array, side, noise_array, bmp, fi, col);
+        //store(star_array, side, noise_array, bmp, fi, col);
+
 
         delete gray;
         delete bmp;
+        //return app.exec();
     }
 
     cout << "out loop..." << endl;
     //Binning(mean pooling)
     //TODO
 
-    return 0;
+    //return 0;
 }
