@@ -6,4 +6,5 @@ QT += widgets
 CONFIG += c++11
 
 HEADERS += \
-    mrc.h
+    mrc.h \
+    myview.h
